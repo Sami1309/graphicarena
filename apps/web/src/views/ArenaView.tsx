@@ -49,7 +49,7 @@ export const ArenaView: React.FC = () => {
     const id = setInterval(()=> setRotIndex((i)=> (i+1) % (combinedPrompts.length || 1)), 5000)
     return ()=> { clearTimeout(show); clearInterval(id) }
   },[combinedPrompts.length])
-  const [smart, setSmart] = useState(true)
+  const [smart, setSmart] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const LOCAL_DEV = (import.meta as any).env?.VITE_LOCAL_DEV === 'true' || (typeof window !== 'undefined' && /localhost|127\.0\.0\.1/.test(window.location.hostname))
   const [leftCode, setLeftCode] = useState<string>(DEFAULT_CODE)
