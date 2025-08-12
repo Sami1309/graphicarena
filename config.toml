@@ -1,0 +1,11 @@
+# approval mode
+approval_policy = "untrusted"
+sandbox_mode    = "read-only"
+
+# full-auto mode
+approval_policy = "on-request"
+sandbox_mode    = "workspace-write"
+
+# Optional: allow network in workspace-write mode
+[sandbox_workspace_write]
+network_access = true

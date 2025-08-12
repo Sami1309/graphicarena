@@ -1,0 +1,21 @@
+{
+  "name": "graphicarena",
+  "private": true,
+  "packageManager": "npm@10.8.1",
+  "workspaces": [
+    "ui",
+    "api",
+    "templates",
+    "e2e",
+    "scripts",
+    "supabase"
+  ],
+  "scripts": {
+    "typecheck": "npm run -ws --if-present typecheck",
+    "lint": "npm run -ws --if-present lint",
+    "format": "npm run -ws --if-present format",
+    "test": "npm run -ws --if-present test",
+    "dev:ui": "npm run -w ui dev",
+    "dev:api": "npm run -w api dev"
+  }
+}
