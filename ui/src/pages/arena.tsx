@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Player } from '@remotion/player'
+import { generateMatch, vote } from '../lib/api'
 
 type TemplateOption = {
   id: string
@@ -32,13 +33,33 @@ function Demo({ title }: { title: string }) {
 }
 
 export function Arena() {
-  const [leftTemplate, setLeftTemplate] = useState(templates[0].id)
-  const [rightTemplate, setRightTemplate] = useState(templates[1].id)
+  const [templateId, setTemplateId] = useState(templates[0].id)
   const [leftTitle, setLeftTitle] = useState('Design A')
   const [rightTitle, setRightTitle] = useState('Design B')
+  const [prompt, setPrompt] = useState('Neon, crisp lower-third for tech talk')
+  const [loading, setLoading] = useState(false)
+  const [matchId, setMatchId] = useState<string | null>(null)
+
+  const tplName = useMemo(() => templates.find(t => t.id === templateId)?.name ?? templateId, [templateId])
 
   return (
     <section className="content" style={{ paddingTop: 24 }}>
+      {/* Template bar */}
+      <div className="glass" style={{ padding: 12, borderRadius: 14, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="pill badge" aria-hidden>Template</div>
+        <select
+          value={templateId}
+          onChange={(e) => setTemplateId(e.target.value)}
+          className="pill"
+          style={{ background: 'transparent', color: 'var(--text)' }}
+        >
+          {templates.map((t) => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+        <div className="muted" style={{ marginLeft: 'auto' }}>{tplName}</div>
+      </div>
+
       <div
         className="arena-grid"
         style={{
@@ -50,26 +71,6 @@ export function Arena() {
       >
         {/* Left competitor */}
         <div className="glass" style={{ flex: 1, padding: 16 }}>
-          <div className="row" style={{ marginBottom: 10 }}>
-            <select
-              value={leftTemplate}
-              onChange={(e) => setLeftTemplate(e.target.value)}
-              className="pill"
-            >
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-            <input
-              className="pill"
-              style={{ padding: '8px 12px', background: 'transparent', color: 'var(--text)' }}
-              placeholder="Title"
-              value={leftTitle}
-              onChange={(e) => setLeftTitle(e.target.value)}
-            />
-          </div>
           <div className="frame" style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--panel-strong)' }}>
             <Player
               component={Demo}
@@ -82,6 +83,11 @@ export function Arena() {
               controls
             />
           </div>
+          {matchId && (
+            <div className="row" style={{ marginTop: 12, justifyContent: 'center' }}>
+              <button className="pill" onClick={async () => { await vote(matchId, 'left') }} style={{ border: '1px solid var(--panel-strong)' }}>Vote Left</button>
+            </div>
+          )}
         </div>
 
         {/* VS column */}
@@ -98,26 +104,6 @@ export function Arena() {
 
         {/* Right competitor */}
         <div className="glass" style={{ flex: 1, padding: 16 }}>
-          <div className="row" style={{ marginBottom: 10 }}>
-            <select
-              value={rightTemplate}
-              onChange={(e) => setRightTemplate(e.target.value)}
-              className="pill"
-            >
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-            <input
-              className="pill"
-              style={{ padding: '8px 12px', background: 'transparent', color: 'var(--text)' }}
-              placeholder="Title"
-              value={rightTitle}
-              onChange={(e) => setRightTitle(e.target.value)}
-            />
-          </div>
           <div className="frame" style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--panel-strong)' }}>
             <Player
               component={Demo}
@@ -130,14 +116,42 @@ export function Arena() {
               controls
             />
           </div>
+          {matchId && (
+            <div className="row" style={{ marginTop: 12, justifyContent: 'center' }}>
+              <button className="pill" onClick={async () => { await vote(matchId, 'right') }} style={{ border: '1px solid var(--panel-strong)' }}>Vote Right</button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Voting row */}
-      <div className="row" style={{ marginTop: 16, justifyContent: 'center', gap: 12 }}>
-        <button className="pill" style={{ border: '1px solid var(--panel-strong)' }}>Vote Left</button>
-        <button className="pill" style={{ border: '1px solid var(--panel-strong)' }}>Vote Right</button>
-        <span className="muted">Voting is a placeholder — API coming soon</span>
+      {/* Prompt + Generate */}
+      <div className="glass" style={{ marginTop: 16, padding: 12, borderRadius: 14 }}>
+        <div className="row" style={{ gap: 12 }}>
+          <input
+            className="pill"
+            style={{ flex: 1, padding: '10px 12px', background: 'transparent', color: 'var(--text)' }}
+            placeholder="Describe your graphic…"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+          />
+          <button
+            className="button"
+            disabled={loading}
+            onClick={async () => {
+              try {
+                setLoading(true)
+                const res = await generateMatch({ templateId, prompt })
+                setLeftTitle(res.left.title)
+                setRightTitle(res.right.title)
+                setMatchId(res.matchId)
+              } finally {
+                setLoading(false)
+              }
+            }}
+          >
+            {loading ? 'Generating…' : 'Generate' }
+          </button>
+        </div>
       </div>
     </section>
   )

@@ -1,54 +1,58 @@
 # Repository Guidelines
 
-> This repository implements graphicarena.ai as defined in INIT.md. When behavior changes, update INIT.md first, then code.
+This repo implements graphicarena.ai: a blind, side‑by‑side animated graphics arena (Vite + React + Remotion Player; Hono API; Supabase). INIT.md is the source of truth—update it when changing behavior.
 
 ## Project Structure & Module Organization
 
-Expected layout (create as needed):
-- `ui/` – Vite + React app using Remotion Player.
-- `api/` – Hono (TypeScript) API and routes under `api/src/`.
-- `templates/` – Remotion templates: each folder contains `Template.tsx`, `props.schema.ts`, and generated `props.schema.json`.
-- `supabase/` – SQL migrations, RLS policies, seed scripts.
-- `e2e/` – Playwright tests; `tests/` for unit/integration.
-- `scripts/` – local dev, seeding, and utility scripts.
-- `docs/` – planning docs (keep `INIT.md` authoritative).
+Suggested layout aligning to INIT.md:
+
+```
+apps/
+  web/       # Vite + React UI (Remotion Player only)
+  api/       # Hono (TypeScript) API
+supabase/    # SQL, seeds, RLS policies
+templates/   # Remotion templates (Template.tsx, props.schema.ts/.json)
+scripts/     # dev tools, seed, lint
+tests/       # unit/integration; e2e/ for Playwright
+```
 
 ## Build, Test, and Development Commands
 
-- Install: `pnpm i` (npm/yarn also fine).
-- Frontend dev: `pnpm --filter ui dev` (serves React at `localhost:5173`).
-- API dev: `pnpm --filter api dev` (Hono watcher at `localhost:8787` or configured port).
-- Type check: `pnpm typecheck` (runs `tsc -b`).
-- Tests: `pnpm test` (Vitest/Jest; see packages for config). E2E: `pnpm --filter e2e test`.
-- Supabase (local): `docker compose up -d` or `supabase start`; seed via `pnpm scripts/seed`.
+- Install: `npm install` (or `pnpm install`)
+- Dev UI: `npm run dev:web` (serves Vite at 5173)
+- Dev API: `npm run dev:api` (Hono with watch)
+- Run both: `npm run dev`
+- Build: `npm run build` (builds web and api)
+- Unit/Integration: `npm test` (watch with `npm run test:watch`)
+- E2E: `npm run e2e` (Playwright)
+- Lint/Format: `npm run lint` / `npm run format`
+
+Add these scripts to the root or per‑app `package.json` if missing.
 
 ## Coding Style & Naming Conventions
 
-- TypeScript, 2‑space indent, semicolons off, single quotes.
-- Lint/format: ESLint + Prettier. Run `pnpm lint` and `pnpm format` before PRs.
-- Names: `camelCase` vars/functions, `PascalCase` React components, `kebab-case` filenames, `SCREAMING_SNAKE_CASE` env vars.
-- API routes: `kebab-case` paths under `/api/*`.
-- Templates must be pure/deterministic; props validated against schema.
+- TypeScript everywhere; 2‑space indentation; semicolons on; single quotes.
+- Files: kebab‑case (`match-service.ts`), components PascalCase (`Template.tsx`).
+- Tests: colocate as `*.test.ts` or under `tests/` mirroring paths.
+- Use ESLint + Prettier; fix before PRs (`npm run lint && npm run format`).
+- Template contract: only pure `Template.tsx` + validated `props` (see INIT.md §4).
 
 ## Testing Guidelines
 
-- Unit: logic (Elo, validators, moderation). Files end with `*.spec.ts` or `*.test.tsx`.
+- Unit: validators, Elo math, reducers (Vitest/Jest acceptable).
 - Integration: API flows (`/api/match → SSE → /api/vote`).
-- E2E: Playwright in `e2e/` covering prompt, watch, vote, reveal, follow‑up.
-- Aim for meaningful coverage on core modules; don’t chase 100%.
-- Run `pnpm test` locally and ensure CI passes.
+- E2E: Playwright scripts under `tests/e2e/` covering prompt, reveal, follow‑up.
+- Coverage: target 80%+ for core modules; run `npm run coverage` if configured.
 
 ## Commit & Pull Request Guidelines
 
-- Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`.
-- Small, focused commits; reference issues (`#123`).
-- PRs include: summary, rationale, screenshots/video for UI, API contract notes, and migrations if any.
-- If you change behavior or data shapes, update `INIT.md` in the same PR.
+- Use Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`; imperative mood.
+- PRs include: purpose, linked issue, screenshots or logs, and risk notes.
+- Update `INIT.md` when altering flows, routes, or data model.
+- CI must pass lint, build, and tests before merge.
 
 ## Security & Configuration Tips
 
-- Never commit service keys. Use `.env.development` locally; keep server‑only keys in API env.
-- Enforce RLS in migrations; validate all template props (Zod/AJV) before render.
-- Keep CSP strict; sanitize rich text; no model‑emitted code—only TemplateProps JSON.
-- Rate limits and anti‑spam must stay active in all environments.
-
+- Never commit secrets; use `.env.*` for `SUPABASE_*`, provider keys, CSP origins.
+- Enforce RLS on all tables; validate all `props` against schema; sanitize strings.
+- LLM adapters must return TemplateProps JSON only—no code or URLs.
