@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@remotion/player": "^4.0.0",
+    "@remotion/transitions": "^4.0.0",
     "@babel/standalone": "^7.25.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: graphicarena-api
+    env: node
+    rootDir: apps/api
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: OPENROUTER_MAX_USD_PER_MTOKEN
+        sync: false
+
+  - type: static
+    name: graphicarena-web
+    rootDir: apps/web
+    plan: free
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: graphicarena-api
+          property: host
+        # Render sets the hostname; inject a full URL for the web app
+      - key: VITE_API_URL
+        value: https://graphicarena-api.onrender.com
+
