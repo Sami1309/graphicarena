@@ -20,7 +20,7 @@ type AnyComponent = React.FC<any>
 export const ArenaView: React.FC = () => {
   const [template, setTemplate] = useState<'kinetic'>('kinetic')
   const [prompt, setPrompt] = useState('Write an inspiring 3-line quote about creativity.')
-  const [suggestions, setSuggestions] = useState<{id:string; prompt:string; left_model:string; right_model:string}[]>([])
+  const [suggestions, setSuggestions] = useState<{id:string; prompt:string; snippetsCount:number}[]>([])
   const [preview, setPreview] = useState<{id:string; prompt:string; left_code:string; right_code:string} | null>(null)
   const [prevLeftComp, setPrevLeftComp] = useState<AnyComponent | null>(null)
   const [prevRightComp, setPrevRightComp] = useState<AnyComponent | null>(null)
@@ -33,6 +33,7 @@ export const ArenaView: React.FC = () => {
   const [models, setModels] = useState<{ left: string; right: string } | null>(null)
   const [smart, setSmart] = useState(true)
   const [editMode, setEditMode] = useState(false)
+  const LOCAL_DEV = (import.meta as any).env?.VITE_LOCAL_DEV === 'true' || (typeof window !== 'undefined' && /localhost|127\.0\.0\.1/.test(window.location.hostname))
   const [leftCode, setLeftCode] = useState<string>(DEFAULT_CODE)
   const [rightCode, setRightCode] = useState<string>(DEFAULT_CODE)
   const [leftCompiled, setLeftCompiled] = useState<AnyComponent | null>(null)
@@ -239,10 +240,12 @@ return exports;`)
             <option value="kinetic">Kinetic Type</option>
           </select>
         </div>
-        <div className="toggles">
-          <label className="toggle"><input type="checkbox" checked={smart} onChange={(e)=>setSmart(e.target.checked)} /> Smart mode</label>
-          <label className="toggle"><input type="checkbox" checked={editMode} onChange={(e)=>setEditMode(e.target.checked)} /> Edit mode</label>
-        </div>
+        {LOCAL_DEV && (
+          <div className="toggles">
+            <label className="toggle"><input type="checkbox" checked={smart} onChange={(e)=>setSmart(e.target.checked)} /> Smart mode</label>
+            <label className="toggle"><input type="checkbox" checked={editMode} onChange={(e)=>setEditMode(e.target.checked)} /> Edit mode</label>
+          </div>
+        )}
       </div>
 
       <div className="players">
@@ -313,8 +316,8 @@ return exports;`)
           <div className="s-head">Try a suggested prompt</div>
           <div className="s-list">
             {suggestions.map(s => (
-              <div key={s.id} className="s-item-wrap">
-                <button className="s-item" onClick={()=>useSuggestion(s.id)} onMouseEnter={()=>previewSuggestion(s.id)} title={`${s.left_model} vs ${s.right_model}`}>{s.prompt}</button>
+              <div key={s.id} className="s-item-wrap" onMouseEnter={()=>previewSuggestion(s.id)}>
+                <button className="s-item" onClick={()=>useSuggestion(s.id)} title={`Cached variants: ${s.snippetsCount}`}>{s.prompt}</button>
                 {preview?.id === s.id && (
                   <div className="s-preview">
                     <div className="s-prev-grid">

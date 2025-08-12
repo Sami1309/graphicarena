@@ -10,6 +10,21 @@ export type CachedComparison = {
   enabled: boolean
 }
 
+export type CachedPrompt = {
+  id: string
+  prompt: string
+  enabled: boolean
+  snippets_count?: number
+}
+
+export type CachedSnippet = {
+  id: string
+  cached_id: string
+  model: string
+  code: string
+  enabled: boolean
+}
+
 function getClient(url?: string | null, key?: string | null): SupabaseClient | null {
   if (!url || !key) return null
   return createClient(url, key, { auth: { persistSession: false } })
@@ -32,20 +47,45 @@ export function getPublicSupabase() {
   return getClient(url, key)
 }
 
-export async function listCachedComparisons(): Promise<CachedComparison[]> {
+export async function listCachedComparisons(): Promise<CachedPrompt[]> {
   const sb = getPublicSupabase()
   if (!sb) return []
-  const { data, error } = await sb.from('cached_comparisons').select('*').eq('enabled', true).limit(20)
+  // Try new structure first
+  const res = await sb
+    .from('cached_prompts')
+    .select('id,prompt,enabled, cached_snippets:cached_snippets(count)')
+    .eq('enabled', true)
+    .limit(50)
+  if (!res.error && res.data) {
+    return (res.data as any[]).map((r) => ({ id: r.id, prompt: r.prompt, enabled: r.enabled, snippets_count: (r.cached_snippets?.[0]?.count ?? 0) }))
+  }
+  // Fallback to old table
+  const { data, error } = await sb.from('cached_comparisons').select('id,prompt,enabled').eq('enabled', true).limit(20)
   if (error) throw error
-  return data as any
+  return (data as any[]).map((r) => ({ id: r.id, prompt: r.prompt, enabled: r.enabled }))
 }
 
-export async function getCachedComparison(id: string): Promise<CachedComparison | null> {
-  const sb = getPublicSupabase()
-  if (!sb) return null
+export async function getCachedComparison(id: string): Promise<{ left_code: string; right_code: string; left_model: string; right_model: string } | null> {
+  const sb = getPublicSupabase(); if (!sb) return null
+  // Try new tables: pick two random snippets for the cached prompt
+  const { data: promptRow } = await sb.from('cached_prompts').select('id').eq('id', id).maybeSingle()
+  if (promptRow?.id) {
+    const { data: snippets } = await sb
+      .from('cached_snippets')
+      .select('model,code')
+      .eq('cached_id', id)
+      .eq('enabled', true)
+      .limit(20)
+    if (snippets && snippets.length >= 2) {
+      const shuffled = [...snippets].sort(() => Math.random() - 0.5)
+      const [a, b] = shuffled
+      return { left_code: a.code, right_code: b.code, left_model: a.model, right_model: b.model }
+    }
+  }
+  // Fallback to old table
   const { data, error } = await sb.from('cached_comparisons').select('*').eq('id', id).single()
-  if (error) return null
-  return data as any
+  if (error || !data) return null
+  return { left_code: (data as any).left_code, right_code: (data as any).right_code, left_model: (data as any).left_model, right_model: (data as any).right_model }
 }
 
 export async function ensureTemplate(slug: string, title: string): Promise<string | null> {

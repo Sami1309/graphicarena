@@ -16,10 +16,7 @@ export const Sidebar: React.FC<{
   )
   return (
     <nav className="sidebar">
-      <div className="brand">
-        <img src="/logo.png" alt="Graphicarena" className="brand-logo" />
-        <span>Graphicarena</span>
-      </div>
+      <div className="brand">Graphicarena</div>
       <Item id="arena" label="Arena" />
       <Item id="leaderboard" label="Leaderboard" />
       <Item id="info" label="Info" />

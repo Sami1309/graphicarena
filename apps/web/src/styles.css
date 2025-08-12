@@ -12,12 +12,17 @@ body { margin: 0; background: var(--bg); color: white; font-family: Inter, syste
 
 .layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100%; }
 .sidebar { border-right: 1px solid rgba(255,255,255,0.08); padding: 20px; background: linear-gradient(180deg,#0f1629 0%, #0b1020 100%); }
-.brand { font-weight: 800; letter-spacing: 0.4px; margin-bottom: 16px; color: var(--accent); font-size: 18px; display:flex; align-items:center; gap:10px; }
-.brand-logo { height: 24px; width: auto; display: block; }
+.brand { font-weight: 800; letter-spacing: 0.4px; margin-bottom: 16px; color: var(--accent); font-size: 18px; }
 .nav-item { display: block; width: 100%; padding: 10px 12px; text-align: left; background: rgba(255,255,255,0.02); color: white; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; cursor: pointer; margin-bottom: 8px; transition: all .15s ease; }
 .nav-item.active, .nav-item:hover { background: #131b30; border-color: rgba(255,255,255,0.16); box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
 
 .content { padding: 16px 20px; }
+.content .info { max-width: 1100px; }
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.card { background: #0f1629; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.3); }
+.card-title { font-weight: 700; margin-bottom: 8px; }
+.card-player { position: relative; padding-top: 56.25%; border-radius: 8px; overflow: hidden; }
+.content h2 { margin-top: 0; }
 .view.hidden { display: none; }
 
 .arena .controls-row { display: flex; align-items: end; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -68,4 +73,5 @@ body { margin: 0; background: var(--bg); color: white; font-family: Inter, syste
   .sidebar { position: sticky; top: 0; z-index: 5; }
   .players { grid-template-columns: 1fr; }
   .prompt-panel { flex-direction: column; }
+  .cards { grid-template-columns: 1fr; }
 }

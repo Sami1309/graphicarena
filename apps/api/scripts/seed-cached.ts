@@ -17,26 +17,21 @@ const sb = createClient(url, service, { auth: { persistSession: false } })
 
 async function main() {
   const id = 'hello-aqua'
-  const payload = {
-    id,
-    prompt: 'Energetic kinetic type introducing Graphicarena',
-    left_model: 'anthropic/claude-3-5-sonnet',
-    right_model: 'google/gemini-1.5-pro',
-    left_code: "export default function Comp(){return (<div style=\"width:100%;height:100%;background:#000\"/>);}",
-    right_code: "export default function Comp(){return (<div style=\"width:100%;height:100%;background:#000\"/>);}",
-    enabled: true,
+  const prompt = 'Energetic kinetic type introducing Graphicarena'
+  await sb.from('cached_prompts').upsert({ id, prompt, enabled: true })
+  const snippets = [
+    { model: 'anthropic/claude-3-5-sonnet', code: "export default function Comp(){return (<div style=\\\"width:100%;height:100%;background:#000\\\"/>);}" },
+    { model: 'google/gemini-1.5-pro', code: "export default function Comp(){return (<div style=\\\"width:100%;height:100%;background:#000\\\"/>);}" },
+    { model: 'xai/grok-2', code: "export default function Comp(){const f=Remotion.useCurrentFrame();const o=Remotion.interpolate(f,[0,30],[0,1],{extrapolateRight:'clamp'});return (<div style=\\\"width:100%;height:100%;background:#0b1020;color:#fff;display:grid;place-items:center;\\\"><div style=\\\"opacity:\\\"+o+\\\"\\\">Graphicarena</div></div>);}" },
+    { model: 'openai/gpt-4o', code: "export default function Comp(){return (<div style=\\\"width:100%;height:100%;background:#000\\\"/>);}" },
+  ]
+  for (const s of snippets) {
+    await sb.from('cached_snippets').insert({ cached_id: id, model: s.model, code: s.code, enabled: true })
   }
-  const { error } = await sb.from('cached_comparisons').upsert(payload)
-  if (error) {
-    console.error('Seed upsert failed:', error.message)
-    process.exit(1)
-  } else {
-    console.log('Seeded cached_comparisons:', id)
-  }
+  console.log('Seeded cached_prompts + cached_snippets:', id)
 }
 
 main().catch((e) => {
   console.error(e)
   process.exit(1)
 })
-

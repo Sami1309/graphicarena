@@ -21,11 +21,16 @@ const app = new Hono()
 app.use('*', logger())
 // Dev: allow all origins to avoid local port mismatch issues
 const allowed = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173').split(',').map((s)=>s.trim())
+const allowRenderWildcard = (process.env.ALLOW_RENDER || 'true') === 'true'
 app.use('*', cors({
-  origin: (origin, c) => {
+  origin: (origin) => {
     if (!origin) return '*'
-    if (allowed.includes('*')) return origin
-    return allowed.includes(origin) ? origin : null
+    if (allowed.includes('*') || allowed.includes(origin)) return origin
+    try {
+      const u = new URL(origin)
+      if (allowRenderWildcard && u.hostname.endsWith('.onrender.com')) return origin
+    } catch {}
+    return null
   },
 }))
 
@@ -200,14 +205,11 @@ app.get('/api/leaderboard', (c) => {
 app.get('/api/cached-comparisons/:id', async (c) => {
   const id = c.req.param('id')
   try {
-    let row = await getCachedComparison(id)
-    if (!row) row = (memory.cached as any[]).find((r) => r.id === id)
+    const row = await getCachedComparison(id)
     if (!row) return c.json({ error: 'Not found' }, 404)
     return c.json({ data: row })
   } catch {
-    const row = (memory.cached as any[]).find((r) => r.id === id)
-    if (!row) return c.json({ error: 'Not found' }, 404)
-    return c.json({ data: row })
+    return c.json({ error: 'Not found' }, 404)
   }
 })
 
@@ -217,24 +219,24 @@ console.log(`API listening on http://localhost:${port}`)
 // Cached comparisons
 app.get('/api/cached-comparisons', async (c) => {
   try {
-    const dbRows = await listCachedComparisons()
-    const rows = dbRows.length ? dbRows : memory.cached
-    return c.json({ data: rows.map((r) => ({ id: r.id, prompt: r.prompt, left_model: r.left_model, right_model: r.right_model })) })
+    const rows = await listCachedComparisons()
+    return c.json({ data: rows.map((r) => ({ id: r.id, prompt: r.prompt, snippetsCount: (r as any).snippets_count ?? 0 })) })
   } catch {
-    return c.json({ data: memory.cached.map((r) => ({ id: r.id, prompt: r.prompt, left_model: r.left_model, right_model: r.right_model })) })
+    return c.json({ data: [] })
   }
 })
 
 app.post('/api/cached-comparisons/:id/start', async (c) => {
   const id = c.req.param('id')
-  let row = await getCachedComparison(id)
-  if (!row) row = memory.cached.find((r) => r.id === id)
+  const row = await getCachedComparison(id)
   if (!row) return c.json({ error: 'Not found' }, 404)
   const matchId = `cached_${id}_${Math.random().toString(36).slice(2)}`
+  // Simulate generation delay for UX consistency
+  await new Promise((r) => setTimeout(r, 3000))
   const match: Match = {
     id: matchId,
     template: 'code',
-    prompt: row.prompt,
+    prompt: id,
     left: { model: row.left_model, code: row.left_code },
     right: { model: row.right_model, code: row.right_code },
     revealed: false,

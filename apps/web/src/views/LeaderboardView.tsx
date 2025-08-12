@@ -4,12 +4,13 @@ type Row = { model: string; rating: number; games: number }
 
 export const LeaderboardView: React.FC = () => {
   const [rows, setRows] = useState<Row[]>([])
+  const API_URL = (import.meta as any).env?.VITE_API_URL || (typeof window !== 'undefined' && window.location?.origin?.includes('onrender.com') ? window.location.origin.replace('graphicarena-1','graphicarena-api') : 'http://localhost:8787')
   useEffect(() => {
-    fetch('http://localhost:8787/api/leaderboard')
+    fetch(`${API_URL}/api/leaderboard`)
       .then((r) => r.json())
       .then((d) => setRows(d.data ?? []))
       .catch(() => {})
-  }, [])
+  }, [API_URL])
 
   return (
     <div className="leaderboard">
@@ -31,4 +32,3 @@ export const LeaderboardView: React.FC = () => {
     </div>
   )
 }
-
