@@ -2,10 +2,10 @@ import 'dotenv/config'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
-import { SYSTEM_PROMPT, userPrompt } from './prompt'
-import { chatComplete, listModels, OpenRouterModel } from './openrouter'
+import { SYSTEM_PROMPT, userPrompt } from './prompt.js'
+import { chatComplete, listModels, OpenRouterModel } from './openrouter.js'
 import { serve } from '@hono/node-server'
-import { getCachedComparison, listCachedComparisons, ensureModel, ensureTemplate, insertGenerationRec, insertMatchRec, insertVoteRec, upsertElo } from './db'
+import { getCachedComparison, listCachedComparisons, ensureModel, ensureTemplate, insertGenerationRec, insertMatchRec, insertVoteRec, upsertElo } from './db.js'
 
 type Match = {
   id: string
