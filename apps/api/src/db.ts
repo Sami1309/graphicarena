@@ -97,6 +97,6 @@ export async function upsertElo(model_id: string, delta: number): Promise<void> 
 }
 
 export async function insertVoteRec(args: { match_id: string; winner_model_id: string; loser_model_id: string; side: 'left'|'right' }): Promise<void> {
-  const sb = getSupabase(); if (!sb) return
+  const sb = getServiceSupabase(); if (!sb) return
   await sb.from('votes').insert({ match_id: args.match_id, winner_model_id: args.winner_model_id, loser_model_id: args.loser_model_id, side: args.side })
 }

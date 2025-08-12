@@ -21,11 +21,13 @@ const app = new Hono()
 app.use('*', logger())
 // Dev: allow all origins to avoid local port mismatch issues
 const allowed = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173').split(',').map((s)=>s.trim())
-app.use('*', cors({ origin: (origin) => {
-  if (!origin) return true
-  if (allowed.includes('*')) return true
-  return allowed.includes(origin)
-}}))
+app.use('*', cors({
+  origin: (origin, c) => {
+    if (!origin) return '*'
+    if (allowed.includes('*')) return origin
+    return allowed.includes(origin) ? origin : null
+  },
+}))
 
 const memory = {
   matches: new Map<string, Match>(),
@@ -99,7 +101,7 @@ app.post('/api/match', async (c) => {
 
   async function getCodeFor(model: string) {
     try {
-      const raw = await chatComplete(model, [sys, user], apiKey)
+      const raw = await chatComplete(model, [sys, user], apiKey!)
       return extractCode(raw)
     } catch (e) {
       return null
