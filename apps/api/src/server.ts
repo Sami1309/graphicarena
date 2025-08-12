@@ -101,7 +101,7 @@ app.post('/api/match', async (c) => {
   const models = await listModels(apiKey)
   // Optional price-based filtering
   const maxUsdPerMToken = process.env.OPENROUTER_MAX_USD_PER_MTOKEN
-  const limit = maxUsdPerMToken ? Number(maxUsdPerMToken) : undefined
+  const priceCap = maxUsdPerMToken ? Number(maxUsdPerMToken) : undefined
   function getUsdPerMTok(m: OpenRouterModel): number | null {
     const p: any = (m as any).pricing || {}
     // Try common keys; prefer higher of input/output to be conservative
@@ -110,10 +110,10 @@ app.post('/api/match', async (c) => {
     return Math.max(...cand)
   }
   let filtered = models
-  if (Number.isFinite(limit)) {
+  if (Number.isFinite(priceCap)) {
     filtered = models.filter((m) => {
       const usd = getUsdPerMTok(m)
-      return usd == null || usd <= (limit as number)
+      return usd == null || usd <= (priceCap as number)
     })
     if (filtered.length < 2) filtered = models // fallback if too restrictive
   }
