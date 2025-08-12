@@ -36,13 +36,13 @@ export const InfoView: React.FC = () => {
   return (
     <div className="info">
       <h2>What is GraphicArena?</h2>
-      <p>GraphicArena lets you compare two AI‑generated Remotion animations side‑by‑side and vote for your favorite. After voting, model names are revealed and an Elo‑style leaderboard updates.</p>
-      <p>For fast first impressions, we also serve pre‑approved “cached” animations so anyone can compare without waiting for fresh generations.</p>
+      <p>GraphicArena lets you compare two motion graphic videos, each generated programatically by an LLM</p>
+      <p>This is aimed at testing the emerging visual, spatial and aesthetic capabilities of large-language models.</p>
       <div style={{margin: '14px 0', padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, background: 'var(--card)'}}>
-        <strong href="https://moteo.dev">Moteo.dev</strong> — an AI motion graphics tool for designers & teams. Join the waitlist to get early access.
-        <div style={{display:'flex',gap:10,marginTop:10}}>
+        Powered by <strong href="https://moteo.dev">Moteo.dev</strong> — an AI motion graphics tool for creators, designers & teams. <div style={{display:'flex',gap:10,marginTop:10}}>
           <a className="secondary gen" href="https://moteo.dev" target="_blank" rel="noreferrer">Join the waitlist</a>
         </div>
+        
       </div>
       
 

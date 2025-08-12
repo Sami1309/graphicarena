@@ -1,0 +1,368 @@
+/* ==== Design tokens ======================================================= */
+:root {
+    /* color */
+    --bg: #f7f8fb;
+    --surface: #ffffff;
+    --surface-2: #fafbff;
+    --text: #0f172a;      /* slate-900 */
+    --muted: #475569;     /* slate-600 */
+    --muted-2: #64748b;   /* slate-500 */
+    --border: #e5e7eb;    /* gray-200 */
+    --ring: #94a3b8;      /* slate-400 */
+    --primary: #2563eb;   /* calming blue */
+    --primary-contrast: #ffffff;
+    --accent: #0ea5e9;    /* soft cyan for subtle highlights */
+    --success: #22c55e;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+  
+    /* effects */
+    --radius: 14px;
+    --radius-sm: 10px;
+    --radius-xs: 8px;
+    --shadow-1: 0 1px 2px rgba(2, 6, 23, .05), 0 8px 20px rgba(2, 6, 23, .06);
+    --shadow-2: 0 10px 28px rgba(2, 6, 23, .08);
+  
+    /* spacing scale */
+    --s-1: .25rem;  /* 4 */
+    --s-2: .5rem;   /* 8 */
+    --s-3: .75rem;  /* 12 */
+    --s-4: 1rem;    /* 16 */
+    --s-5: 1.25rem; /* 20 */
+    --s-6: 1.5rem;  /* 24 */
+    --s-7: 1.75rem; /* 28 */
+    --s-8: 2rem;    /* 32 */
+    --s-10: 2.5rem; /* 40 */
+  
+    /* typography */
+    --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  
+    /* sizing */
+    --maxw: 1200px;
+  
+    /* transitions */
+    --ease: cubic-bezier(.2,.7,.2,1);
+    --ts: 160ms var(--ease);
+  }
+  
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1018;
+      --surface: #0f1623;
+      --surface-2: #0d1420;
+      --text: #e5e7eb;
+      --muted: #a8b1c0;
+      --muted-2: #94a3b8;
+      --border: #1f2937;
+      --ring: #334155;
+      --primary: #697584;
+      --primary-contrast: #0b1018;
+      --shadow-1: 0 1px 2px rgba(0,0,0,.3), 0 8px 20px rgba(0,0,0,.35);
+      --shadow-2: 0 10px 28px rgba(0,0,0,.45);
+    }
+  }
+  
+  /* ==== Base reset / layout ================================================= */
+  * { box-sizing: border-box; }
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    color: var(--text);
+    background: radial-gradient(1200px 800px at 10% -10%, rgba(37,99,235,.08), transparent 65%),
+                radial-gradient(1000px 700px at 110% 10%, rgba(14,165,233,.06), transparent 60%),
+                var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: 0ms !important; scroll-behavior: auto !important; }
+  }
+  
+  /* Focus visibility */
+  :where(button, [href], input, textarea) {
+    outline: none;
+  }
+  :where(button, [href], input, textarea):focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 35%, transparent),
+                0 0 0 6px color-mix(in oklab, var(--ring) 25%, transparent);
+    border-radius: calc(var(--radius-xs) + 2px);
+  }
+  
+  /* ==== Arena container ===================================================== */
+  .arena {
+    margin: 0 auto;
+    max-width: var(--maxw);
+    padding: var(--s-8) var(--s-4) var(--s-10);
+    display: grid;
+    gap: var(--s-8);
+  }
+  
+  /* Top row */
+  .controls-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .toggles {
+    display: flex; gap: var(--s-4);
+    color: var(--muted);
+    font-size: .95rem;
+  }
+  .toggle {
+    display: inline-flex; align-items: center; gap: .5ch;
+    padding: var(--s-2) var(--s-3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+  }
+  .toggle input { accent-color: var(--primary); }
+  
+  /* ==== Players grid ======================================================== */
+  .players {
+    display: grid;
+    gap: var(--s-6);
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 960px) {
+    .players { grid-template-columns: 1fr 1fr; }
+  }
+  
+  .player-card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--s-4);
+    box-shadow: var(--shadow-1);
+    transition: transform var(--ts), box-shadow var(--ts);
+  }
+  .player-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-2);
+  }
+  
+  /* Video frame preserves 16:9 */
+  .player {
+    position: relative;
+    border-radius: var(--radius-xs);
+    overflow: hidden;
+    background: linear-gradient(180deg, color-mix(in oklab, var(--surface-2) 70%, transparent), transparent);
+  }
+  .player-frame {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+  }
+  .player-frame > * {
+    position: absolute; inset: 0;
+  }
+  
+  /* Loading overlay + spinner */
+  .player.loading .overlay {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    backdrop-filter: blur(2px);
+    background: color-mix(in oklab, var(--surface), transparent 60%);
+  }
+  .spinner {
+    width: 28px; height: 28px; border-radius: 999px;
+    border: 3px solid color-mix(in oklab, var(--muted-2) 30%, transparent);
+    border-top-color: var(--primary);
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  
+  /* Vote button */
+  .vote {
+    margin-top: var(--s-4);
+    width: 100%;
+    padding: .9rem 1rem;
+    font-weight: 600;
+    border: 1px solid color-mix(in oklab, var(--primary) 32%, var(--border));
+    background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 16%, var(--surface)) 0%, var(--surface) 100%);
+    color: var(--text);
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    transition: filter var(--ts), transform var(--ts), box-shadow var(--ts);
+  }
+  .vote:hover { filter: brightness(1.02); box-shadow: var(--shadow-1); }
+  .vote:active { transform: translateY(1px); }
+  
+  /* Model badge */
+  .badge {
+    position: absolute;
+    top: var(--s-4); right: var(--s-4);
+    padding: .35rem .6rem;
+    font-size: .8rem;
+    color: var(--text);
+    background: color-mix(in oklab, var(--surface) 65%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    backdrop-filter: blur(6px);
+  }
+  
+  /* ==== Editors (edit mode) ================================================= */
+  .editor {
+    margin-top: var(--s-4);
+    display: grid; gap: var(--s-3);
+  }
+  .editor label {
+    color: var(--muted); font-size: .9rem; font-weight: 600;
+  }
+  .editor textarea {
+    font-family: var(--mono);
+    min-height: 200px;
+    line-height: 1.45;
+    padding: var(--s-4);
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    resize: vertical;
+    transition: border-color var(--ts), box-shadow var(--ts);
+  }
+  .editor textarea:focus {
+    border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 12%, transparent);
+  }
+  
+  /* ==== Prompt panel ======================================================== */
+  .prompt-panel {
+    position: sticky;
+    bottom: var(--s-6);
+    display: grid; gap: var(--s-3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--s-4);
+    box-shadow: var(--shadow-1);
+  }
+  .prompt-input {
+    width: 100%;
+    min-height: 96px;
+    padding: var(--s-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    background: var(--surface-2);
+    color: var(--text);
+    line-height: 1.5;
+    transition: border-color var(--ts), box-shadow var(--ts), background var(--ts);
+  }
+  .prompt-input::placeholder { color: var(--muted-2); }
+  .prompt-input:focus {
+    border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 12%, transparent);
+  }
+  
+  .actions-row {
+    display: flex; gap: var(--s-3); justify-content: flex-end; flex-wrap: wrap;
+  }
+  
+  button.primary, button.secondary {
+    appearance: none;
+    border-radius: var(--radius-xs);
+    padding: .8rem 1rem;
+    border: 1px solid transparent;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--ts), box-shadow var(--ts), filter var(--ts), background var(--ts);
+  }
+  button.primary {
+    background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 20%, #fff) 0%, var(--primary) 120%);
+    color: var(--primary-contrast);
+    box-shadow: 0 8px 18px color-mix(in oklab, var(--primary) 20%, transparent);
+  }
+  button.primary:hover { filter: brightness(1.02); }
+  button.primary:disabled { opacity: .6; cursor: not-allowed; box-shadow: none; }
+  
+  button.secondary {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  button.secondary:hover { filter: brightness(1.02); }
+  
+  /* Inline rotating suggestion */
+  .cycle-suggestion {
+    align-self: center;
+    justify-self: start;
+    padding: .5rem .75rem;
+    background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+    border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border));
+    color: var(--muted);
+    border-radius: 999px;
+    transition: background var(--ts), border-color var(--ts), transform var(--ts);
+  }
+  .cycle-suggestion:hover { transform: translateY(-1px); }
+  
+  /* Suggestions list */
+  .suggestions {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--s-4);
+    box-shadow: var(--shadow-1);
+    display: grid; gap: var(--s-3);
+  }
+  .s-head {
+    color: var(--muted);
+    font-weight: 700; letter-spacing: .02em;
+  }
+  .s-list {
+    display: grid; gap: var(--s-3);
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 720px) {
+    .s-list { grid-template-columns: repeat(2, 1fr); }
+  }
+  .s-item {
+    text-align: left;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    padding: .75rem .9rem;
+    cursor: pointer;
+    color: var(--text);
+    transition: transform var(--ts), box-shadow var(--ts), background var(--ts);
+  }
+  .s-item:hover { transform: translateY(-1px); box-shadow: var(--shadow-1); }
+  
+  /* Last prompt chip */
+  .last-prompt {
+    justify-self: start;
+    max-width: 100%;
+    padding: .4rem .7rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    box-shadow: var(--shadow-1);
+  }
+  
+  /* Hints and errors */
+  .hint, .error {
+    padding: .75rem .9rem;
+    border-radius: var(--radius-xs);
+    border: 1px solid;
+  }
+  .hint {
+    border-color: color-mix(in oklab, var(--success) 35%, var(--border));
+    background: color-mix(in oklab, var(--success) 8%, var(--surface));
+    color: color-mix(in oklab, var(--success) 25%, var(--text));
+  }
+  .error {
+    border-color: color-mix(in oklab, var(--danger) 30%, var(--border));
+    background: color-mix(in oklab, var(--danger) 10%, var(--surface));
+    color: color-mix(in oklab, var(--danger) 20%, var(--text));
+  }
+  
+  /* Small text tweaks */
+  label, .badge, .s-head, .last-prompt { font-size: .9rem; }
+  
+  /* Prevent layout shifts when scrollbars appear inside players */
+  .player-card { contain: paint; }
+  

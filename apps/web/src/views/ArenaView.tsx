@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Player } from '@remotion/player'
 import * as Babel from '@babel/standalone'
+import './arena.css'
+
 
 type MatchResponse = {
   id: string
@@ -272,8 +274,8 @@ return exports;`)
 
       <div className="players">
         <div className="player-card">
-          <div className={loading ? 'player loading' : 'player'}>
-            <div className="player-frame">
+          <div className={loading ? 'player loading' : 'player'}  aria-busy={loading}>
+            <div className="player-frame" role="group"  aria-label="Left preview">
               <Player
                 component={(leftErr || (!matchId && error)) ? Failed : LeftWrapped}
                 inputProps={{}}
@@ -285,7 +287,7 @@ return exports;`)
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
               />
             </div>
-            {loading && <div className="overlay"><div className="spinner" /></div>}
+            {loading && <div className="overlay" aria-hidden="true"><div className="spinner" role="status" aria-label="Loading"/></div>}
           </div>
           {revealed && models && (
             <div className="badge">{models.left}</div>
@@ -361,11 +363,15 @@ return exports;`)
           <button className="secondary gen" onClick={surpriseMe} disabled={loading}>Surprise me</button>
         </div>
       </div>
-      <div className="cycle-suggestion" onClick={()=>handleGenerate(rotating[rotIndex])}>
-        Try: {rotating[rotIndex]}
-      </div>
-      {error && <div className="error">{error}</div>}
-      {revealed && <div className="hint">Thanks for voting! Models updated in leaderboard.</div>}
+      <button
+  type="button"
+  className="cycle-suggestion"
+  onClick={() => handleGenerate(rotating[rotIndex])}
+>
+  Try: {rotating[rotIndex]}
+</button>
+      {error && <div className="error" aria-live="polite">{error}</div>}
+      {revealed && <div className="hint"  aria-live="polite">Thanks for voting! Models updated in leaderboard.</div>}
     </div>
   )
 }
