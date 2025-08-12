@@ -16,7 +16,7 @@ export const Sidebar: React.FC<{
   )
   return (
     <nav className="sidebar">
-      <div className="brand">Graphicarena</div>
+      <div className="brand gradient-text">GraphicArena</div>
       <Item id="arena" label="Arena" />
       <Item id="leaderboard" label="Leaderboard" />
       <Item id="info" label="Info" />

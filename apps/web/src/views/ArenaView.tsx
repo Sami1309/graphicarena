@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Player } from '@remotion/player'
-import { renderTemplate } from '../remotion/templates'
 import * as Babel from '@babel/standalone'
 
 type MatchResponse = {
@@ -39,7 +38,7 @@ export const ArenaView: React.FC = () => {
   const [leftErr, setLeftErr] = useState<string | null>(null)
   const [rightErr, setRightErr] = useState<string | null>(null)
 
-  const Comp = useMemo(() => renderTemplate(template), [template])
+  const Blank: AnyComponent = () => (<div style={{width:'100%',height:'100%',background:'#000'}} />)
 
   // Compile helpers for edit mode
   function preprocess(src: string) {
@@ -134,6 +133,8 @@ return exports;`)
       setMatchId(data.id)
       setLeftCode(data.left.code)
       setRightCode(data.right.code)
+      setLastPrompt(s.prompt)
+      setPrompt('')
     } catch(e:any) {
       setError(e?.message ?? String(e))
     } finally {
@@ -151,9 +152,11 @@ return exports;`)
     componentDidCatch() {}
     render() {
       if (this.state.error) {
-        return <div style={{position:'absolute',inset:0,display:'grid',placeItems:'center',background:'rgba(12,16,28,0.6)',borderRadius:10}}>
-          <div style={{color:'#ff9aa2',fontSize:12,opacity:0.9,textAlign:'center',padding:12}}>Render error: {String(this.state.error?.message || this.state.error)}</div>
-        </div>
+        return (
+          <div style={{width:'100%',height:'100%',background:'#0b1018',display:'grid',placeItems:'center'}}>
+            <div style={{color:'#e5e7eb',fontSize:18,opacity:0.95}}>the LLM produced invalid code</div>
+          </div>
+        )
       }
       return <>{this.props.children}</>
     }
@@ -171,12 +174,12 @@ return exports;`)
   }
 
   const Failed: AnyComponent = () => (
-    <div style={{width:'100%',height:'100%',background:'#000',display:'grid',placeItems:'center'}}>
-      <div style={{color:'#e5e7eb',fontSize:16,opacity:0.9}}>the animation code failed</div>
+    <div style={{width:'100%',height:'100%',background:'#0b1018',display:'grid',placeItems:'center'}}>
+      <div style={{color:'#e5e7eb',fontSize:18,opacity:0.95}}>the LLM produced invalid code</div>
     </div>
   )
-  const LeftWrapped = useMemo(() => wrapComponent((leftCompiled ?? Comp) as AnyComponent), [leftCompiled, Comp])
-  const RightWrapped = useMemo(() => wrapComponent((rightCompiled ?? Comp) as AnyComponent), [rightCompiled, Comp])
+  const LeftWrapped = useMemo(() => wrapComponent((leftCompiled ?? Blank) as AnyComponent), [leftCompiled])
+  const RightWrapped = useMemo(() => wrapComponent((rightCompiled ?? Blank) as AnyComponent), [rightCompiled])
 
   async function handleGenerate() {
     setLoading(true)
@@ -220,12 +223,7 @@ return exports;`)
   return (
     <div className="arena">
       <div className="controls-row">
-        <div className="field">
-          <label>Template</label>
-          <select value={template} onChange={(e) => setTemplate(e.target.value as any)}>
-            <option value="kinetic">Kinetic Type</option>
-          </select>
-        </div>
+        <div className="field" />
         {LOCAL_DEV && (
           <div className="toggles">
             <label className="toggle"><input type="checkbox" checked={smart} onChange={(e)=>setSmart(e.target.checked)} /> Smart mode</label>

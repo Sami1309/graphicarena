@@ -11,8 +11,9 @@ html, body, #root { height: 100%; }
 body { margin: 0; background: var(--bg); color: white; font-family: Inter, system-ui, Arial, sans-serif; }
 
 .layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100%; }
-.sidebar { border-right: 1px solid rgba(255,255,255,0.08); padding: 20px; background: linear-gradient(180deg,#0f1629 0%, #0b1020 100%); }
-.brand { font-weight: 800; letter-spacing: 0.4px; margin-bottom: 16px; color: var(--accent); font-size: 18px; }
+.sidebar { border-right: 1px solid rgba(255,255,255,0.08); padding: 20px; background: #101523; }
+.brand { font-weight: 900; letter-spacing: 0.6px; margin-bottom: 16px; font-size: 20px; }
+.gradient-text { background: linear-gradient(90deg, #7dd3fc, #6366f1); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .nav-item { display: block; width: 100%; padding: 10px 12px; text-align: left; background: rgba(255,255,255,0.02); color: white; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; cursor: pointer; margin-bottom: 8px; transition: all .15s ease; }
 .nav-item.active, .nav-item:hover { background: #131b30; border-color: rgba(255,255,255,0.16); box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
 
@@ -34,9 +35,9 @@ body { margin: 0; background: var(--bg); color: white; font-family: Inter, syste
 .toggles { display: flex; gap: 14px; align-items: center; }
 .toggle { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
 
-.players { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.players { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; justify-items: stretch; align-items: stretch; }
 .player-card { background: #0f1629; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); position: relative; }
-.badge { position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16); color: #cbd5e1; padding: 4px 8px; border-radius: 999px; font-size: 12px; backdrop-filter: blur(6px); }
+.badge { position: absolute; top: 12px; left: 12px; background: rgba(7,18,22,0.7); border: 1px solid rgba(125,211,252,0.35); color: #e2f3ff; padding: 6px 10px; border-radius: 12px; font-size: 14px; font-weight: 800; box-shadow: 0 6px 16px rgba(0,0,0,0.25); }
 .player { position: relative; }
 .player-frame { position: relative; width: 100%; padding-top: 56.25%; overflow: hidden; border-radius: 10px; }
 .player-frame > * { position: absolute; inset: 0; }
@@ -47,9 +48,9 @@ body { margin: 0; background: var(--bg); color: white; font-family: Inter, syste
 .editor { margin-top: 10px; }
 .editor textarea { width: 100%; min-height: 180px; background: #0f1629; color: #e6edf3; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 10px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
 
-.prompt-panel { display: flex; gap: 10px; margin-top: 16px; background: #0f1629; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 10px; align-items: end; }
-.prompt-input { flex: 1; min-height: 110px; resize: vertical; background: transparent; border: none; color: white; outline: none; padding: 6px; font-size: 14px; }
-.primary.gen { border-radius: 12px; }
+.prompt-panel { display: grid; grid-template-columns: 1fr 160px; gap: 10px; margin-top: 16px; background: #0f1629; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 10px; align-items: stretch; }
+.prompt-input { flex: 1; min-height: 130px; resize: vertical; background: transparent; border: none; color: white; outline: none; padding: 10px; font-size: 15px; }
+.primary.gen { border-radius: 12px; font-size: 15px; display: inline-flex; justify-content: center; align-items: center; padding: 10px 12px; }
 
 .leaderboard .table { display: grid; gap: 6px; }
 .leaderboard .thead, .leaderboard .trow { display: grid; grid-template-columns: 1fr 120px 100px; gap: 12px; align-items: center; padding: 8px 12px; background: #0f1629; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; }
@@ -62,7 +63,7 @@ body { margin: 0; background: var(--bg); color: white; font-family: Inter, syste
 .s-head { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
 .s-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .s-item { background: rgba(255,255,255,0.06); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all .15s ease; }
-.s-item:hover { background: rgba(125,211,252,0.16); border-color: rgba(125,211,252,0.35); box-shadow: 0 6px 16px rgba(0,0,0,0.25); }
+.s-item:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); box-shadow: 0 6px 16px rgba(0,0,0,0.25); }
 
 @media (max-width: 1000px) {
   .layout { grid-template-columns: 1fr; }
@@ -71,3 +72,12 @@ body { margin: 0; background: var(--bg); color: white; font-family: Inter, syste
   .prompt-panel { flex-direction: column; }
   .cards { grid-template-columns: 1fr; }
 }
+
+.last-prompt { text-align: center; margin: 10px 0 6px; color: #cbd5e1; font-size: 14px; }
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: grid; place-items: center; z-index: 50; }
+.modal { width: min(640px, 92vw); background: #0f1629; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 18px; box-shadow: 0 20px 60px rgba(0,0,0,0.45); }
+.modal h2 { margin: 0 0 8px 0; }
+.modal .muted { color: var(--muted); }
+.modal-list { margin: 10px 0 0 18px; }
+.modal-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
