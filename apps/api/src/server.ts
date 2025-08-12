@@ -191,7 +191,7 @@ app.get('/api/surprise', async (c) => {
   const allow = ['claude', 'sonnet', 'gemini', 'grok']
   const pick = models.map((m) => m.id).find((id) => allow.some((k) => id.toLowerCase().includes(k))) || models[0]?.id
   const sys = { role: 'system', content: 'You are a creative assistant that outputs only a single short prompt idea for a 4-second motion graphic. No quotes, no extra text.' } as const
-  const user = { role: 'user', content: 'Create a bold, professional 4-second motion graphic idea. Possibilities include bold introduction of a text string, slow fade through amorphous colors. Output only the prompt sentence.' } as const
+  const user = { role: 'user', content: 'Create a bold, professional 4-second motion graphic idea. Possibilities include bold introduction of a text string, slow fade through amorphous colors. Output only the prompt sentence. One example is "colorful spinning shape", or "bold text reveal of title through amorphous colors", or "interesting color shifting line". Keep them short and simple' } as const
   const text = await chatComplete(pick, [sys, user], apiKey)
   const prompt = text.replace(/^\s*"|"\s*$/g, '').trim()
   return c.json({ prompt })
