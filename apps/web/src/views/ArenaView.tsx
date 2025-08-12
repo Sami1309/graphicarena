@@ -32,6 +32,7 @@ export const ArenaView: React.FC = () => {
   const [editMode, setEditMode] = useState(false)
   const LOCAL_DEV = (import.meta as any).env?.VITE_LOCAL_DEV === 'true' || (typeof window !== 'undefined' && /localhost|127\.0\.0\.1/.test(window.location.hostname))
   const [leftCode, setLeftCode] = useState<string>(DEFAULT_CODE)
+  const [lastPrompt, setLastPrompt] = useState<string>('')
   const [rightCode, setRightCode] = useState<string>(DEFAULT_CODE)
   const [leftCompiled, setLeftCompiled] = useState<AnyComponent | null>(null)
   const [rightCompiled, setRightCompiled] = useState<AnyComponent | null>(null)
@@ -129,6 +130,11 @@ return exports;`)
       setPrompt(s.prompt)
       const res = await fetch(`${API_URL}/api/cached-comparisons/${s.id}/start`, { method: 'POST' })
       if(!res.ok) throw new Error('Failed to load suggestion')
+      if (res.status === 429) {
+        const j = await res.json()
+        setError('Generation limit reached. Please try suggested prompts below.')
+        return
+      }
       const data: MatchResponse = await res.json()
       setMatchId(data.id)
       setLeftCode(data.left.code)
@@ -181,21 +187,29 @@ return exports;`)
   const LeftWrapped = useMemo(() => wrapComponent((leftCompiled ?? Blank) as AnyComponent), [leftCompiled])
   const RightWrapped = useMemo(() => wrapComponent((rightCompiled ?? Blank) as AnyComponent), [rightCompiled])
 
-  async function handleGenerate() {
+  async function handleGenerate(overridePrompt?: string) {
     setLoading(true)
     setError(null)
     setRevealed(false)
     try {
+      const toSend = (overridePrompt ?? prompt)
       const res = await fetch(`${API_URL}/api/match`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, template, smart }),
+        body: JSON.stringify({ prompt: toSend, template, smart }),
       })
+      if (res.status === 429) {
+        const j = await res.json()
+        setError('Generation limit reached. Please try suggested prompts below.')
+        return
+      }
       if (!res.ok) throw new Error(`Match error: ${res.status}`)
       const data: MatchResponse = await res.json()
       setMatchId(data.id)
       setLeftCode(data.left.code)
       setRightCode(data.right.code)
+      setLastPrompt(toSend)
+      setPrompt('')
     } catch (e: any) {
       setError(e?.message ?? String(e))
     } finally {
@@ -218,6 +232,18 @@ return exports;`)
     } catch (e) {
       console.error(e)
     }
+  }
+
+  async function surpriseMe() {
+    try {
+      setLoading(true)
+      const r = await fetch(`${API_URL}/api/surprise`)
+      const j = await r.json()
+      if (j?.prompt) {
+        await handleGenerate(j.prompt)
+      }
+    } catch {}
+    finally { setLoading(false) }
   }
 
   return (
@@ -295,6 +321,10 @@ return exports;`)
         </div>
       </div>
 
+      {lastPrompt && (
+        <div className="last-prompt">{lastPrompt}</div>
+      )}
+
       {suggestions.length > 0 && (
         <div className="suggestions">
           <div className="s-head">Try a suggested prompt</div>
@@ -307,8 +337,17 @@ return exports;`)
       )}
 
       <div className="prompt-panel">
-        <textarea className="prompt-input" placeholder="Describe the animation…" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
-        <button className="primary gen" onClick={handleGenerate} disabled={loading}>{loading ? 'Generating…' : 'Generate'}</button>
+        <textarea
+          className="prompt-input"
+          placeholder="Describe the animation…"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate() } }}
+        />
+        <div className="actions-row">
+          <button className="primary gen" onClick={()=>handleGenerate()} disabled={loading}>{loading ? 'Generating…' : 'Generate'}</button>
+          <button className="secondary gen" onClick={surpriseMe} disabled={loading}>Surprise me</button>
+        </div>
       </div>
       {error && <div className="error">{error}</div>}
       {revealed && <div className="hint">Thanks for voting! Models updated in leaderboard.</div>}

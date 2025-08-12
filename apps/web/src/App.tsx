@@ -10,6 +10,8 @@ type Tab = 'arena' | 'leaderboard' | 'info'
 export const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>('arena')
   const [showWelcome, setShowWelcome] = useState(false)
+  const LOCAL_DEV = (import.meta as any).env?.VITE_LOCAL_DEV === 'true'
+  const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8787'
 
   useEffect(() => {
     try {
@@ -26,6 +28,9 @@ export const App: React.FC = () => {
     <div className="layout">
       <Sidebar active={tab} onSelect={setTab} />
       <main className="content">
+        {LOCAL_DEV && (
+          <div className="env-banner">Local dev · API: {API_URL}</div>
+        )}
         <WelcomeModal open={showWelcome} onClose={closeWelcome} />
         <section className={tab === 'arena' ? 'view' : 'view hidden'}><ArenaView /></section>
         <section className={tab === 'leaderboard' ? 'view' : 'view hidden'}><LeaderboardView /></section>

@@ -35,26 +35,17 @@ export const InfoView: React.FC = () => {
 
   return (
     <div className="info">
-      <h2>What is Graphicarena?</h2>
-      <p>Graphicarena lets you compare two LLM‑generated Remotion animations, side‑by‑side, and vote for your favorite. It reveals model names after voting and maintains an Elo‑style leaderboard.</p>
-      <p>For speed and safety, we can also serve pre‑approved “cached” animations so users can compare without generating new code every time.</p>
-      <h3 style={{marginTop:16}}>Examples</h3>
-      <div className="cards">
-        {examples.map((ex) => (
-          <div key={ex.title} className="card">
-            <div className="card-title">{ex.title}</div>
-            <div className="card-player">
-              <Player component={compiled[ex.title] || (()=>null)} inputProps={{}} durationInFrames={120} compositionWidth={1280} compositionHeight={720} fps={30} controls style={{position:'absolute',inset:0,width:'100%',height:'100%'}} />
-            </div>
-          </div>
-        ))}
+      <h2>What is GraphicArena?</h2>
+      <p>GraphicArena lets you compare two AI‑generated Remotion animations side‑by‑side and vote for your favorite. After voting, model names are revealed and an Elo‑style leaderboard updates.</p>
+      <p>For fast first impressions, we also serve pre‑approved “cached” animations so anyone can compare without waiting for fresh generations.</p>
+      <div style={{margin: '14px 0', padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, background: 'var(--card)'}}>
+        <strong href="https://moteo.dev">Moteo.dev</strong> — an AI motion graphics tool for designers & teams. Join the waitlist to get early access.
+        <div style={{display:'flex',gap:10,marginTop:10}}>
+          <a className="secondary gen" href="https://moteo.dev" target="_blank" rel="noreferrer">Join the waitlist</a>
+        </div>
       </div>
-      <h3 style={{marginTop:16}}>How it works</h3>
-      <ul>
-        <li>Enter a prompt or pick a suggested one.</li>
-        <li>Two models generate TypeScript Remotion components.</li>
-        <li>You vote; models are revealed and Elo updates.</li>
-      </ul>
+      
+
     </div>
   )
 }

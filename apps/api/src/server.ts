@@ -2,10 +2,11 @@ import 'dotenv/config'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
+import { getCookie, setCookie } from 'hono/cookie'
 import { SYSTEM_PROMPT, userPrompt } from './prompt.js'
 import { chatComplete, listModels, OpenRouterModel } from './openrouter.js'
 import { serve } from '@hono/node-server'
-import { getCachedComparison, listCachedComparisons, ensureModel, ensureTemplate, insertGenerationRec, insertMatchRec, insertVoteRec, upsertElo } from './db.js'
+import { getCachedComparison, listCachedComparisons, ensureModel, ensureTemplate, insertGenerationRec, insertMatchRec, insertVoteRec, upsertElo, getPublicSupabase } from './db.js'
 
 type Match = {
   id: string
@@ -48,6 +49,20 @@ const memory = {
       enabled: true,
     },
   ] as any[],
+  sessions: new Map<string, Set<string>>()
+}
+
+function getSessionId(c: any): string {
+  let sid = getCookie(c, 'gaid')
+  if (!sid) {
+    sid = Math.random().toString(36).slice(2)
+    setCookie(c, 'gaid', sid, { path: '/', httpOnly: false, maxAge: 60 * 60 * 24 * 365 })
+  }
+  return sid
+}
+
+function normalizePrompt(p?: string): string {
+  return (p || '').trim().toLowerCase().replace(/\s+/g, ' ').slice(0, 500)
 }
 
 function pickTwo<T>(arr: T[]): [T, T] {
@@ -71,6 +86,14 @@ app.post('/api/match', async (c) => {
     prompt: string
     template: string
     smart?: boolean
+  }
+  // Unique prompt limit per session
+  const limit = Number(process.env.UNIQUE_PROMPT_LIMIT || 5)
+  const sid = getSessionId(c)
+  const set = memory.sessions.get(sid) || new Set<string>()
+  const key = normalizePrompt(prompt)
+  if (!set.has(key) && set.size >= limit) {
+    return c.json({ error: 'limit_reached', limit, remaining: 0 }, 429)
   }
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) return c.json({ error: 'Missing OPENROUTER_API_KEY' }, 400)
@@ -139,6 +162,11 @@ app.post('/api/match', async (c) => {
     revealed: false,
   }
   memory.matches.set(id, match)
+  // Track unique prompt usage
+  if (!set.has(key)) {
+    set.add(key)
+    memory.sessions.set(sid, set)
+  }
   // Persist to Supabase if configured
   try {
     const tplId = await ensureTemplate('code', 'Generated Code')
@@ -153,6 +181,20 @@ app.post('/api/match', async (c) => {
     }
   } catch {}
   return c.json({ id, template: match.template, left: { code: leftCode }, right: { code: rightCode } })
+})
+
+// Surprise prompt endpoint
+app.get('/api/surprise', async (c) => {
+  const apiKey = process.env.OPENROUTER_API_KEY
+  if (!apiKey) return c.json({ error: 'Missing OPENROUTER_API_KEY' }, 400)
+  const models = await listModels(apiKey)
+  const allow = ['claude', 'sonnet', 'gemini', 'grok']
+  const pick = models.map((m) => m.id).find((id) => allow.some((k) => id.toLowerCase().includes(k))) || models[0]?.id
+  const sys = { role: 'system', content: 'You are a creative assistant that outputs only a single short prompt idea for a 4-second motion graphic. No quotes, no extra text.' } as const
+  const user = { role: 'user', content: 'Create a bold, professional 4-second motion graphic idea. Possibilities include bold introduction of a text string, slow fade through amorphous colors. Output only the prompt sentence.' } as const
+  const text = await chatComplete(pick, [sys, user], apiKey)
+  const prompt = text.replace(/^\s*"|"\s*$/g, '').trim()
+  return c.json({ prompt })
 })
 
 app.post('/api/vote', async (c) => {
@@ -194,11 +236,23 @@ app.post('/api/vote', async (c) => {
   return c.json({ reveal: { leftModel: m.left.model, rightModel: m.right.model }, elo: { winnerDelta: K * (1 - expectedW) } })
 })
 
-app.get('/api/leaderboard', (c) => {
-  const data = Array.from(memory.elo.entries())
-    .map(([model, { rating, games }]) => ({ model, rating, games }))
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 50)
+app.get('/api/leaderboard', async (c) => {
+  // Prefer Supabase persistent ratings
+  try {
+    const sb = getPublicSupabase()
+    if (sb) {
+      const { data, error } = await sb
+        .from('elo_ratings')
+        .select('rating,games,models:models(slug)')
+        .order('rating', { ascending: false })
+        .limit(50)
+      if (!error && data) {
+        return c.json({ data: data.map((r: any) => ({ model: r.models?.slug || 'unknown', rating: r.rating, games: r.games })) })
+      }
+    }
+  } catch {}
+  // Fallback to in-memory if DB not configured
+  const data = Array.from(memory.elo.entries()).map(([model, { rating, games }]) => ({ model, rating, games })).sort((a, b) => b.rating - a.rating).slice(0, 50)
   return c.json({ data })
 })
 
