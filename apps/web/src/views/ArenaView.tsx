@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Player } from '@remotion/player'
 import * as Babel from '@babel/standalone'
-import './arena.css'
 
 
 type MatchResponse = {
@@ -20,7 +19,7 @@ type AnyComponent = React.FC<any>
 
 export const ArenaView: React.FC = () => {
   const [template, setTemplate] = useState<'kinetic'>('kinetic')
-  const [prompt, setPrompt] = useState('Write an inspiring 3-line quote about creativity.')
+  const [prompt, setPrompt] = useState('A cool abstract moving color shape')
   const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8787'
   const [suggestions, setSuggestions] = useState<{id:string; prompt:string; snippetsCount:number}[]>([])
   const [leftProps] = useState<any | null>(null)
@@ -30,18 +29,26 @@ export const ArenaView: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [revealed, setRevealed] = useState(false)
   const [models, setModels] = useState<{ left: string; right: string } | null>(null)
-  const rotating = [
-    'Bold colorful spinning shape',
+  const hardcoded = [
+    'Bold beautiful spinning abstract color shape',
+    'Dramatic fade in text through amorphous colored shapes',
+    'Multiple spinning shapes gradually overlapping',
+    'Party lights with lines zooming across screen',
     'Cinematic title introduction of Graphic Animation',
-    'Soft fade through abstract shapes and a text reveal',
-    'Minimal rotating square with center focus',
-    'Kinetic type with subtle easing and scale'
+    'Minimal rotating square with center focus'
   ]
+  const combinedPrompts = useMemo(()=>{
+    const dynamic = suggestions.map(s=>s.prompt)
+    const list = [...hardcoded, ...dynamic]
+    return list.length ? list : hardcoded
+  },[suggestions])
   const [rotIndex, setRotIndex] = useState(0)
+  const [showTry, setShowTry] = useState(false)
   useEffect(()=>{
-    const id = setInterval(()=> setRotIndex((i)=> (i+1)%rotating.length), 5000)
-    return ()=> clearInterval(id)
-  },[])
+    const show = setTimeout(()=> setShowTry(true), 5000)
+    const id = setInterval(()=> setRotIndex((i)=> (i+1) % (combinedPrompts.length || 1)), 5000)
+    return ()=> { clearTimeout(show); clearInterval(id) }
+  },[combinedPrompts.length])
   const [smart, setSmart] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const LOCAL_DEV = (import.meta as any).env?.VITE_LOCAL_DEV === 'true' || (typeof window !== 'undefined' && /localhost|127\.0\.0\.1/.test(window.location.hostname))
@@ -339,16 +346,7 @@ return exports;`)
         <div className="last-prompt">{lastPrompt}</div>
       )}
 
-      {suggestions.length > 0 && (
-        <div className="suggestions">
-          <div className="s-head">Try a suggested prompt</div>
-          <div className="s-list">
-            {suggestions.map(s => (
-              <button key={s.id} className="s-item" onClick={()=>useSuggestionPick(s)} title={`Cached variants: ${s.snippetsCount}`}>{s.prompt}</button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Cached prompts are integrated into the cycling Try chip below */}
 
       <div className="prompt-panel">
         <textarea
@@ -363,12 +361,17 @@ return exports;`)
           <button className="secondary gen" onClick={surpriseMe} disabled={loading}>Surprise me</button>
         </div>
       </div>
+      {showTry && false && (
+        <div className="cycle-suggestion" onClick={()=>handleGenerate(combinedPrompts[rotIndex % (combinedPrompts.length || 1)])}>
+          <span key={rotIndex} className="fade-in">Try: {combinedPrompts[rotIndex % (combinedPrompts.length || 1)]}</span>
+        </div>
+      )}
       <button
   type="button"
   className="cycle-suggestion"
-  onClick={() => handleGenerate(rotating[rotIndex])}
+  onClick={() => handleGenerate(combinedPrompts[rotIndex])}
 >
-  Try: {rotating[rotIndex]}
+  Try: {combinedPrompts[rotIndex]}
 </button>
       {error && <div className="error" aria-live="polite">{error}</div>}
       {revealed && <div className="hint"  aria-live="polite">Thanks for voting! Models updated in leaderboard.</div>}

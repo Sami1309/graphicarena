@@ -87,6 +87,7 @@ app.post('/api/match', async (c) => {
     template: string
     smart?: boolean
   }
+  console.log("smart? ", smart)
   // Unique prompt limit per session
   const limit = Number(process.env.UNIQUE_PROMPT_LIMIT || 5)
   const sid = getSessionId(c)
@@ -119,8 +120,10 @@ app.post('/api/match', async (c) => {
   }
   let ids = filtered.map((m) => m.id).filter((id) => typeof id === 'string' && id.includes('/'))
   if (smart) {
-    const allow = ['claude', 'sonnet', 'gemini', 'grok']
+    // Prefer faster, lightweight models by default
+    const allow = ['flash', 'haiku']
     const filtered = ids.filter((id) => allow.some((k) => id.toLowerCase().includes(k)))
+    console.log(filtered)
     if (filtered.length >= 2) ids = filtered
   }
   const [mL, mR] = pickTwo(ids)
@@ -188,7 +191,7 @@ app.get('/api/surprise', async (c) => {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) return c.json({ error: 'Missing OPENROUTER_API_KEY' }, 400)
   const models = await listModels(apiKey)
-  const allow = ['claude', 'sonnet', 'gemini', 'grok']
+  const allow = ['flash', 'haiku', 'mini']
   const pick = models.map((m) => m.id).find((id) => allow.some((k) => id.toLowerCase().includes(k))) || models[0]?.id
   const sys = { role: 'system', content: 'You are a creative assistant that outputs only a single short prompt idea for a 4-second motion graphic. No quotes, no extra text.' } as const
   const user = { role: 'user', content: 'Create a bold, professional 4-second motion graphic idea. Possibilities include bold introduction of a text string, slow fade through amorphous colors. Output only the prompt sentence. One example is "colorful spinning shape", or "bold text reveal of title through amorphous colors", or "interesting color shifting line". Keep them short and simple' } as const
