@@ -1,0 +1,20 @@
+project_id = "graphicarena-local"
+
+[api]
+port = 55421
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 55422
+shadow_port = 55420
+major_version = 15
+
+[studio]
+port = 55423
+
+[inbucket]
+port = 55424
+
+# Other services (auth, storage, realtime, functions) use defaults.
