@@ -54,6 +54,9 @@ body { margin: 0; background: var(--bg); color: #e5e7eb; font-family: Inter, sys
 .secondary.gen { border-radius: 10px; font-size: 14px; display: inline-flex; justify-content: center; align-items: center; padding: 8px 10px; background: #cbd5e1; color: #0b0d10; border: 1px solid rgba(255,255,255,0.18); cursor: pointer; }
 .secondary.gen:hover { background: #bfc8d4; }
 
+.cycle-suggestion { margin-top: 8px; text-align: center; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; background: rgba(255,255,255,0.06); cursor: pointer; }
+.cycle-suggestion:hover { background: rgba(255,255,255,0.12); }
+
 .leaderboard .table { display: grid; gap: 6px; }
 .leaderboard .thead, .leaderboard .trow { display: grid; grid-template-columns: 1fr 120px 100px; gap: 12px; align-items: center; padding: 8px 12px; background: var(--card); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; }
 .leaderboard .thead { font-weight: 700; opacity: 0.8; }

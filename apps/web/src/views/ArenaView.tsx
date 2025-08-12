@@ -28,6 +28,18 @@ export const ArenaView: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [revealed, setRevealed] = useState(false)
   const [models, setModels] = useState<{ left: string; right: string } | null>(null)
+  const rotating = [
+    'Bold colorful spinning shape',
+    'Cinematic title introduction of Graphic Animation',
+    'Soft fade through abstract shapes and a text reveal',
+    'Minimal rotating square with center focus',
+    'Kinetic type with subtle easing and scale'
+  ]
+  const [rotIndex, setRotIndex] = useState(0)
+  useEffect(()=>{
+    const id = setInterval(()=> setRotIndex((i)=> (i+1)%rotating.length), 5000)
+    return ()=> clearInterval(id)
+  },[])
   const [smart, setSmart] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const LOCAL_DEV = (import.meta as any).env?.VITE_LOCAL_DEV === 'true' || (typeof window !== 'undefined' && /localhost|127\.0\.0\.1/.test(window.location.hostname))
@@ -348,6 +360,9 @@ return exports;`)
           <button className="primary gen" onClick={()=>handleGenerate()} disabled={loading}>{loading ? 'Generating…' : 'Generate'}</button>
           <button className="secondary gen" onClick={surpriseMe} disabled={loading}>Surprise me</button>
         </div>
+      </div>
+      <div className="cycle-suggestion" onClick={()=>handleGenerate(rotating[rotIndex])}>
+        Try: {rotating[rotIndex]}
       </div>
       {error && <div className="error">{error}</div>}
       {revealed && <div className="hint">Thanks for voting! Models updated in leaderboard.</div>}
