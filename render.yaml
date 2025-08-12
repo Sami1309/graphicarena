@@ -4,7 +4,7 @@ services:
     env: node
     rootDir: apps/api
     plan: free
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     startCommand: node dist/server.js
     envVars:
       - key: NODE_VERSION
@@ -26,15 +26,8 @@ services:
     name: graphicarena-web
     rootDir: apps/web
     plan: free
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: graphicarena-api
-          property: host
-        # Render sets the hostname; inject a full URL for the web app
-      - key: VITE_API_URL
         value: https://graphicarena-api.onrender.com
-
