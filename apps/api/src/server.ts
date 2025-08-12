@@ -6,7 +6,20 @@ import { getCookie, setCookie } from 'hono/cookie'
 import { SYSTEM_PROMPT, userPrompt } from './prompt.js'
 import { chatComplete, listModels, OpenRouterModel } from './openrouter.js'
 import { serve } from '@hono/node-server'
-import { getCachedComparison, listCachedComparisons, ensureModel, ensureTemplate, insertGenerationRec, insertMatchRec, insertVoteRec, upsertElo, getPublicSupabase } from './db.js'
+import {
+  getCachedComparison,
+  listCachedComparisons,
+  ensureModel,
+  ensureTemplate,
+  insertGenerationRec,
+  insertMatchRec,
+  insertVoteRec,
+  upsertElo,
+  getPublicSupabase,
+} from './db.js'
+import * as fs from 'fs'
+import * as path from 'path'
+import { fileURLToPath } from 'url'
 
 type Match = {
   id: string
@@ -21,19 +34,24 @@ const app = new Hono()
 
 app.use('*', logger())
 // Dev: allow all origins to avoid local port mismatch issues
-const allowed = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173').split(',').map((s)=>s.trim())
+const allowed = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173')
+  .split(',')
+  .map((s) => s.trim())
 const allowRenderWildcard = (process.env.ALLOW_RENDER || 'true') === 'true'
-app.use('*', cors({
-  origin: (origin) => {
-    if (!origin) return '*'
-    if (allowed.includes('*') || allowed.includes(origin)) return origin
-    try {
-      const u = new URL(origin)
-      if (allowRenderWildcard && u.hostname.endsWith('.onrender.com')) return origin
-    } catch {}
-    return null
-  },
-}))
+app.use(
+  '*',
+  cors({
+    origin: (origin) => {
+      if (!origin) return '*'
+      if (allowed.includes('*') || allowed.includes(origin)) return origin
+      try {
+        const u = new URL(origin)
+        if (allowRenderWildcard && u.hostname.endsWith('.onrender.com')) return origin
+      } catch {}
+      return null
+    },
+  }),
+)
 
 const memory = {
   matches: new Map<string, Match>(),
@@ -49,8 +67,70 @@ const memory = {
       enabled: true,
     },
   ] as any[],
-  sessions: new Map<string, Set<string>>()
+  sessions: new Map<string, Set<string>>(),
 }
+
+// ---------- Allowed models loader (with caching) ----------
+let _allowedModelsCache: Set<string> | null = null
+async function loadAllowedModels(): Promise<Set<string>> {
+  if (_allowedModelsCache !== null) return _allowedModelsCache
+
+  const parse = (txt: string): Set<string> => {
+    const set = new Set<string>()
+    for (const raw of txt.split(/\r?\n/)) {
+      const line = raw.trim().toLowerCase()
+      if (!line) continue
+      if (line.startsWith('#')) continue
+      set.add(line)
+    }
+    return set
+  }
+
+  const exists = async (p: string) => {
+    try {
+      await fs.promises.access(p, fs.constants.F_OK)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const __filename = fileURLToPath(import.meta.url)
+  const __dirname = path.dirname(__filename)
+
+  const envPath = (process.env.ALLOWED_MODELS_FILE || '').trim()
+  const candidates = [
+    envPath || undefined,
+    // ../src/allowed.txt (relative to dist/server.js in production builds)
+    path.resolve(__dirname, '../src/allowed.txt'),
+    // ./allowed.txt (relative to dist)
+    path.resolve(__dirname, 'allowed.txt'),
+    // src/allowed.txt (relative to process.cwd())
+    path.resolve(process.cwd(), 'src/allowed.txt'),
+  ].filter((p): p is string => !!p)
+
+  let pickedPath: string | null = null
+  for (const p of candidates) {
+    if (await exists(p)) {
+      pickedPath = p
+      break
+    }
+  }
+
+  if (!pickedPath) {
+    _allowedModelsCache = new Set<string>() // cache empty to avoid repeated work
+    return _allowedModelsCache
+  }
+
+  try {
+    const buf = await fs.promises.readFile(pickedPath, 'utf8')
+    _allowedModelsCache = parse(buf)
+  } catch {
+    _allowedModelsCache = new Set<string>()
+  }
+  return _allowedModelsCache
+}
+// ---------------------------------------------------------
 
 function getSessionId(c: any): string {
   let sid = getCookie(c, 'gaid')
@@ -87,7 +167,8 @@ app.post('/api/match', async (c) => {
     template: string
     smart?: boolean
   }
-  console.log("smart? ", smart)
+  console.log('smart? ', smart)
+
   // Unique prompt limit per session
   const limit = Number(process.env.UNIQUE_PROMPT_LIMIT || 5)
   const sid = getSessionId(c)
@@ -96,10 +177,12 @@ app.post('/api/match', async (c) => {
   if (!set.has(key) && set.size >= limit) {
     return c.json({ error: 'limit_reached', limit, remaining: 0 }, 429)
   }
+
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) return c.json({ error: 'Missing OPENROUTER_API_KEY' }, 400)
 
   const models = await listModels(apiKey)
+
   // Optional price-based filtering
   const maxUsdPerMToken = process.env.OPENROUTER_MAX_USD_PER_MTOKEN
   const priceCap = maxUsdPerMToken ? Number(maxUsdPerMToken) : undefined
@@ -110,6 +193,9 @@ app.post('/api/match', async (c) => {
     if (cand.length === 0) return null
     return Math.max(...cand)
   }
+
+  const allowedSet = await loadAllowedModels()
+
   let filtered = models
   if (Number.isFinite(priceCap)) {
     filtered = models.filter((m) => {
@@ -118,14 +204,24 @@ app.post('/api/match', async (c) => {
     })
     if (filtered.length < 2) filtered = models // fallback if too restrictive
   }
-  let ids = filtered.map((m) => m.id).filter((id) => typeof id === 'string' && id.includes('/'))
-  if (smart) {
-    // Prefer faster, lightweight models by default
-    const allow = ['flash', 'haiku']
-    const filtered = ids.filter((id) => allow.some((k) => id.toLowerCase().includes(k)))
-    console.log(filtered)
-    if (filtered.length >= 2) ids = filtered
+
+  // Apply allowed set only if it exists and has entries
+  if (allowedSet.size > 0) {
+    filtered = filtered.filter((m) => allowedSet.has((m.id || '').toLowerCase()))
+    if (filtered.length < 2) {
+      return c.json({ error: 'no_allowed_models', message: 'No allowed models available based on allowed.txt' }, 400)
+    }
   }
+
+  let ids = filtered.map((m) => m.id).filter((id) => typeof id === 'string' && id.includes('/'))
+
+  if (smart) {
+    // Prefer fast/light models (within the allowed set if present)
+    const allow = ['flash', 'haiku', 'mini']
+    const smartIds = ids.filter((id) => allow.some((k) => id.toLowerCase().includes(k)))
+    if (smartIds.length >= 2) ids = smartIds
+  }
+
   const [mL, mR] = pickTwo(ids)
   const sys = { role: 'system', content: SYSTEM_PROMPT } as const
   const user = { role: 'user', content: userPrompt(template ?? 'kinetic', prompt ?? '') } as const
@@ -165,17 +261,24 @@ app.post('/api/match', async (c) => {
     revealed: false,
   }
   memory.matches.set(id, match)
+
   // Track unique prompt usage
   if (!set.has(key)) {
     set.add(key)
     memory.sessions.set(sid, set)
   }
+
   // Persist to Supabase if configured
   try {
     const tplId = await ensureTemplate('code', 'Generated Code')
     const leftModelId = await ensureModel(mL)
     const rightModelId = await ensureModel(mR)
-    const dbMatchId = await insertMatchRec({ prompt, template_id: tplId, left_model_id: leftModelId, right_model_id: rightModelId })
+    const dbMatchId = await insertMatchRec({
+      prompt,
+      template_id: tplId,
+      left_model_id: leftModelId,
+      right_model_id: rightModelId,
+    })
     if (dbMatchId) {
       await Promise.all([
         insertGenerationRec({ match_id: dbMatchId, model_id: leftModelId, code: leftCode }),
@@ -183,18 +286,52 @@ app.post('/api/match', async (c) => {
       ])
     }
   } catch {}
-  return c.json({ id, template: match.template, left: { code: leftCode }, right: { code: rightCode } })
+
+  return c.json({
+    id,
+    template: match.template,
+    left: { code: leftCode },
+    right: { code: rightCode },
+  })
 })
 
 // Surprise prompt endpoint
 app.get('/api/surprise', async (c) => {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) return c.json({ error: 'Missing OPENROUTER_API_KEY' }, 400)
+
   const models = await listModels(apiKey)
-  const allow = ['flash', 'haiku', 'mini']
-  const pick = models.map((m) => m.id).find((id) => allow.some((k) => id.toLowerCase().includes(k))) || models[0]?.id
-  const sys = { role: 'system', content: 'You are a creative assistant that outputs only a single short prompt idea for a 4-second motion graphic. No quotes, no extra text.' } as const
-  const user = { role: 'user', content: 'Create a bold, professional 4-second motion graphic idea. Possibilities include bold introduction of a text string, slow fade through amorphous colors. Output only the prompt sentence. One example is "colorful spinning shape", or "bold text reveal of title through amorphous colors", or "interesting color shifting line". Keep them short and simple' } as const
+  const ids = models.map((m) => m.id).filter((id) => typeof id === 'string' && id.includes('/'))
+  const allowedSet = await loadAllowedModels()
+
+  let pick: string | undefined
+
+  // Prefer any model from the allowed set (if present and non-empty)
+  if (allowedSet.size > 0) {
+    pick = ids.find((id) => allowedSet.has(id.toLowerCase()))
+  }
+
+  // Otherwise fall back to a fast model
+  if (!pick) {
+    const fast = ['flash', 'haiku', 'mini']
+    pick = ids.find((id) => fast.some((k) => id.toLowerCase().includes(k)))
+  }
+
+  // Otherwise just pick the first available model
+  pick = pick || ids[0]
+  if (!pick) return c.json({ error: 'no_models' }, 400)
+
+  const sys = {
+    role: 'system',
+    content:
+      'You are a creative assistant that outputs only a single short prompt idea for a 4-second motion graphic. No quotes, no extra text.',
+  } as const
+  const user = {
+    role: 'user',
+    content:
+      'Create a bold, professional 4-second motion graphic idea. Possibilities include bold introduction of a text string, slow fade through amorphous colors. Output only the prompt sentence. One example is "colorful spinning shape", or "bold text reveal of title through amorphous colors", or "interesting color shifting line". Keep them short and simple',
+  } as const
+
   const text = await chatComplete(pick, [sys, user], apiKey)
   const prompt = text.replace(/^\s*"|"\s*$/g, '').trim()
   return c.json({ prompt })
@@ -205,6 +342,7 @@ app.post('/api/vote', async (c) => {
   const m = memory.matches.get(matchId)
   if (!m) return c.json({ error: 'Match not found' }, 404)
   if (!m.left || !m.right) return c.json({ error: 'Match incomplete' }, 400)
+
   const winnerModel = winner === 'left' ? m.left.model : m.right.model
   const loserModel = winner === 'left' ? m.right.model : m.left.model
 
@@ -219,6 +357,7 @@ app.post('/api/vote', async (c) => {
   const expectedW = 1 / (1 + Math.pow(10, (l.rating - w.rating) / 400))
   const expectedL = 1 - expectedW
   const K = 24
+
   w.rating = Math.round(w.rating + K * (1 - expectedW))
   l.rating = Math.round(l.rating + K * (0 - expectedL))
   w.games++
@@ -236,7 +375,10 @@ app.post('/api/vote', async (c) => {
     }
   } catch {}
 
-  return c.json({ reveal: { leftModel: m.left.model, rightModel: m.right.model }, elo: { winnerDelta: K * (1 - expectedW) } })
+  return c.json({
+    reveal: { leftModel: m.left.model, rightModel: m.right.model },
+    elo: { winnerDelta: K * (1 - expectedW) },
+  })
 })
 
 app.get('/api/leaderboard', async (c) => {
@@ -250,12 +392,19 @@ app.get('/api/leaderboard', async (c) => {
         .order('rating', { ascending: false })
         .limit(50)
       if (!error && data) {
-        return c.json({ data: data.map((r: any) => ({ model: r.models?.slug || 'unknown', rating: r.rating, games: r.games })) })
+        return c.json({
+          data: data.map((r: any) => ({ model: r.models?.slug || 'unknown', rating: r.rating, games: r.games })),
+        })
       }
     }
   } catch {}
+
   // Fallback to in-memory if DB not configured
-  const data = Array.from(memory.elo.entries()).map(([model, { rating, games }]) => ({ model, rating, games })).sort((a, b) => b.rating - a.rating).slice(0, 50)
+  const data = Array.from(memory.elo.entries())
+    .map(([model, { rating, games }]) => ({ model, rating, games }))
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 50)
+
   return c.json({ data })
 })
 
@@ -273,11 +422,14 @@ app.get('/api/cached-comparisons/:id', async (c) => {
 const port = Number(process.env.PORT ?? 8787)
 serve({ fetch: app.fetch, port })
 console.log(`API listening on http://localhost:${port}`)
+
 // Cached comparisons
 app.get('/api/cached-comparisons', async (c) => {
   try {
     const rows = await listCachedComparisons()
-    return c.json({ data: rows.map((r) => ({ id: r.id, prompt: r.prompt, snippetsCount: (r as any).snippets_count ?? 0 })) })
+    return c.json({
+      data: rows.map((r) => ({ id: r.id, prompt: r.prompt, snippetsCount: (r as any).snippets_count ?? 0 })),
+    })
   } catch {
     return c.json({ data: [] })
   }
@@ -287,9 +439,12 @@ app.post('/api/cached-comparisons/:id/start', async (c) => {
   const id = c.req.param('id')
   const row = await getCachedComparison(id)
   if (!row) return c.json({ error: 'Not found' }, 404)
+
   const matchId = `cached_${id}_${Math.random().toString(36).slice(2)}`
+
   // Simulate generation delay for UX consistency
   await new Promise((r) => setTimeout(r, 3000))
+
   const match: Match = {
     id: matchId,
     template: 'code',
@@ -298,6 +453,7 @@ app.post('/api/cached-comparisons/:id/start', async (c) => {
     right: { model: row.right_model, code: row.right_code },
     revealed: false,
   }
+
   memory.matches.set(matchId, match)
   return c.json({ id: matchId, left: { code: row.left_code }, right: { code: row.right_code } })
 })
