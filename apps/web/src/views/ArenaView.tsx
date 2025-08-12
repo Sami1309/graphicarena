@@ -20,10 +20,8 @@ type AnyComponent = React.FC<any>
 export const ArenaView: React.FC = () => {
   const [template, setTemplate] = useState<'kinetic'>('kinetic')
   const [prompt, setPrompt] = useState('Write an inspiring 3-line quote about creativity.')
+  const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8787'
   const [suggestions, setSuggestions] = useState<{id:string; prompt:string; snippetsCount:number}[]>([])
-  const [preview, setPreview] = useState<{id:string; prompt:string; left_code:string; right_code:string} | null>(null)
-  const [prevLeftComp, setPrevLeftComp] = useState<AnyComponent | null>(null)
-  const [prevRightComp, setPrevRightComp] = useState<AnyComponent | null>(null)
   const [leftProps] = useState<any | null>(null)
   const [rightProps] = useState<any | null>(null)
   const [matchId, setMatchId] = useState<string | null>(null)
@@ -124,12 +122,13 @@ return exports;`)
       .catch(()=>{})
   }, [API_URL])
 
-  async function useSuggestion(id: string) {
+  async function useSuggestionPick(s: {id:string; prompt:string}) {
     setLoading(true)
     setError(null)
     setRevealed(false)
     try {
-      const res = await fetch(`${API_URL}/api/cached-comparisons/${id}/start`, { method: 'POST' })
+      setPrompt(s.prompt)
+      const res = await fetch(`${API_URL}/api/cached-comparisons/${s.id}/start`, { method: 'POST' })
       if(!res.ok) throw new Error('Failed to load suggestion')
       const data: MatchResponse = await res.json()
       setMatchId(data.id)
@@ -140,19 +139,6 @@ return exports;`)
     } finally {
       setLoading(false)
     }
-  }
-
-  async function previewSuggestion(id: string) {
-    try {
-      const res = await fetch(`${API_URL}/api/cached-comparisons/${id}`)
-      const json = await res.json()
-      if (json?.data) {
-        setPreview({ id, prompt: json.data.prompt, left_code: json.data.left_code, right_code: json.data.right_code })
-        // compile preview components transiently
-        compile(json.data.left_code, setPrevLeftComp, () => {})
-        compile(json.data.right_code, setPrevRightComp, () => {})
-      }
-    } catch {}
   }
 
   // Error boundary to isolate player runtime errors
@@ -316,18 +302,7 @@ return exports;`)
           <div className="s-head">Try a suggested prompt</div>
           <div className="s-list">
             {suggestions.map(s => (
-              <div key={s.id} className="s-item-wrap" onMouseEnter={()=>previewSuggestion(s.id)}>
-                <button className="s-item" onClick={()=>useSuggestion(s.id)} title={`Cached variants: ${s.snippetsCount}`}>{s.prompt}</button>
-                {preview?.id === s.id && (
-                  <div className="s-preview">
-                    <div className="s-prev-grid">
-                      <div className="s-prev-frame"><Player component={prevLeftComp ?? Failed} inputProps={{}} durationInFrames={120} compositionWidth={640} compositionHeight={360} fps={30} controls style={{ position:'absolute', inset:0, width:'100%', height:'100%' }} /></div>
-                      <div className="s-prev-frame"><Player component={prevRightComp ?? Failed} inputProps={{}} durationInFrames={120} compositionWidth={640} compositionHeight={360} fps={30} controls style={{ position:'absolute', inset:0, width:'100%', height:'100%' }} /></div>
-                    </div>
-                    <div className="s-actions"><button className="primary" onClick={()=>useSuggestion(s.id)}>Use this</button></div>
-                  </div>
-                )}
-              </div>
+              <button key={s.id} className="s-item" onClick={()=>useSuggestionPick(s)} title={`Cached variants: ${s.snippetsCount}`}>{s.prompt}</button>
             ))}
           </div>
         </div>
@@ -342,4 +317,3 @@ return exports;`)
     </div>
   )
 }
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787'
